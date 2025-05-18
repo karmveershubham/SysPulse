@@ -1,0 +1,25 @@
+
+# Node modules
+**/node_modules
+**/dist
+**/.next
+
+# Golang
+*.exe
+*.out
+*.test
+**/bin/
+**/pkg/
+go.sum
+
+# Logs
+*.log
+
+# System
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
