@@ -1,0 +1,30 @@
+{
+  "name": "syspulse",
+  "version": "1.0.0",
+  "description": "SysPulse is a cross-platform system utility tool that monitors machine health metrics",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karmveershubham/syspulse.git"
+  },
+  "author": "Shubh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Karmveershubham/syspulse/issues"
+  },
+  "homepage": "https://github.com/Karmveershubham/syspulse#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.0",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.10"
+  }
+}

@@ -1,7 +1,5 @@
 package checks
 
-var lastReport *SystemReport
-
 func RunAllChecks() SystemReport {
 	diskEncrypted, method := checkDiskEncryption()
 	osUpToDate, current, latest := checkOSUpdate()
@@ -21,15 +19,13 @@ func RunAllChecks() SystemReport {
 	}
 }
 
-func HasChanged(newReport SystemReport) bool {
-	if lastReport == nil {
-		lastReport = &newReport
-		return true
-	}
-
-	changed := *lastReport != newReport
-	if changed {
-		lastReport = &newReport
-	}
-	return changed
+func HasChangedFrom(oldReport, newReport SystemReport) bool {
+	return oldReport.DiskEncrypted != newReport.DiskEncrypted ||
+		oldReport.OSUpToDate != newReport.OSUpToDate ||
+		oldReport.CurrentVersion != newReport.CurrentVersion ||
+		oldReport.LatestVersion != newReport.LatestVersion ||
+		oldReport.AntivirusExists != newReport.AntivirusExists ||
+		oldReport.AntivirusActive != newReport.AntivirusActive ||
+		oldReport.AntivirusName != newReport.AntivirusName ||
+		oldReport.SleepOK != newReport.SleepOK
 }

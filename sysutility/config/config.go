@@ -1,72 +1,119 @@
 package config
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
-    "net/http"
-    "os"
-    "path/filepath"
-    "runtime"
-    "sysutility/utils"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sysutility/internal/checks"
+	"sysutility/utils"
 )
 
 type Config struct {
-    MachineID string `json:"machine_id"`
-    OS        string `json:"os"`
-    Hostname  string `json:"hostname"`
-    Interval  int    `json:"interval"`
-    AuthToken string `json:"token"`
+	MachineID string               `json:"machine_id"`
+	OS        string               `json:"os"`
+	Hostname  string               `json:"hostname"`
+	Interval  int                  `json:"interval"`
+	AuthToken string               `json:"token"`
+	Report    *checks.SystemReport `json:"report,omitempty"`
 }
 
-const configPath = "~/.sysutility/config.json"
-const serverRegisterURL = "https://your-api.com/register" // Replace with your actual endpoint
+var (
+	configDir         = filepath.Join(getHomeDir(), ".sysutility")
+	configPath        = filepath.Join(configDir, "config.json")
+	serverRegisterURL = "http://localhost:5000/api/systems/register"
+)
 
-func expandPath(path string) string {
-    if len(path) >= 2 && path[:2] == "~/" {
-        home, _ := os.UserHomeDir()
-        return filepath.Join(home, path[2:])
-    }
-    return path
+func getHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error getting home directory:", err)
+		os.Exit(1)
+	}
+	return home
+}
+
+func GetConfigPath() string {
+	return configPath
+}
+
+func MarshalConfig(cfg *Config) ([]byte, error) {
+	return json.MarshalIndent(cfg, "", "  ")
+}
+
+func saveConfigToDisk(cfg *Config) error {
+	data, err := MarshalConfig(cfg)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configPath, data, 0644)
 }
 
 func LoadOrRegister() (*Config, error) {
-    path := expandPath(configPath)
+	if _, err := os.Stat(configPath); err == nil {
+		// Load existing config
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading config: %v", err)
+		}
+		var cfg Config
+		if err := json.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("invalid config format: %v", err)
+		}
+		return &cfg, nil
+	}
 
-    // Load if exists
-    if _, err := os.Stat(path); err == nil {
-        data, _ := ioutil.ReadFile(path)
-        var cfg Config
-        json.Unmarshal(data, &cfg)
-        return &cfg, nil
-    }
+	// Register if config doesn't exist
+	machineID := utils.GenerateMachineID()
+	hostname, _ := os.Hostname()
 
-    // Register
-    machineID := utils.GenerateMachineID()
-    hostname, _ := os.Hostname()
+	cfg := Config{
+		MachineID: machineID,
+		Hostname:  hostname,
+		OS:        runtime.GOOS,
+		Interval:  30,
+	}
 
-    cfg := Config{
-        MachineID: machineID,
-        Hostname:  hostname,
-        OS:        runtime.GOOS,
-        Interval:  30,
-    }
+	payload, _ := json.Marshal(cfg)
+	resp, err := http.Post(serverRegisterURL, "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, fmt.Errorf("failed to register: %v", err)
+	}
+	defer resp.Body.Close()
 
-    payload, _ := json.Marshal(cfg)
-    resp, err := http.Post(serverRegisterURL, "application/json", bytes.NewBuffer(payload))
-    if err != nil {
-        return nil, fmt.Errorf("failed to register: %v", err)
-    }
-    defer resp.Body.Close()
+	var response map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("invalid response: %v", err)
+	}
 
-    var response map[string]string
-    json.NewDecoder(resp.Body).Decode(&response)
-    cfg.AuthToken = response["token"]
+	token, ok := response["token"]
+	if !ok || token == "" {
+		return nil, fmt.Errorf("registration failed: token missing")
+	}
+	cfg.AuthToken = token
 
-    os.MkdirAll(filepath.Dir(path), 0755)
-    data, _ := json.MarshalIndent(cfg, "", "  ")
-    ioutil.WriteFile(path, data, 0644)
+	// Generate and assign first report
+	report := checks.RunAllChecks()
+	report.MachineID = cfg.MachineID
+	report.Hostname = cfg.Hostname
+	report.OS = cfg.OS
+	cfg.Report = &report
 
-    return &cfg, nil
+	// Save config
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create config directory: %v", err)
+	}
+	if err := saveConfigToDisk(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func UpdateReport(cfg *Config, newReport checks.SystemReport) error {
+	cfg.Report = &newReport
+	return saveConfigToDisk(cfg)
 }

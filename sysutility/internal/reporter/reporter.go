@@ -1,20 +1,42 @@
 package reporter
 
 import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-    "sysutility/internal/checks"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"sysutility/internal/checks"
 )
 
-const reportURL = "https://your-api.com/report"
+var reportURL = "http://localhost:5000/api/systems/report"
 
 func SendWithAuth(report checks.SystemReport, token string) {
-    body, _ := json.Marshal(report)
-    req, _ := http.NewRequest("POST", reportURL, bytes.NewBuffer(body))
-    req.Header.Set("Authorization", "Bearer "+token)
-    req.Header.Set("Content-Type", "application/json")
 
-    client := &http.Client{}
-    client.Do(req)
+	body, err := json.Marshal(report)
+	if err != nil {
+		fmt.Println("Error marshaling report:", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", reportURL, bytes.NewBuffer(body))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Response Status:", resp.Status)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		fmt.Println("Server returned non-success status:", resp.StatusCode)
+	}
 }
