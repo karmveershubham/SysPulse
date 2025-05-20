@@ -37,14 +37,15 @@ export function StatusChart({
 }: StatusChartProps) {
   // Process data according to the chart type and dataKey
   const processedData = processChartData(data, dataKey, type);
+  console.log(processedData)
 
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-base p-0">{title}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-[200px] w-full p-4">
+        <div className="h-[300px] w-full p-4">
           <ResponsiveContainer width="100%" height="100%">
             {renderChart(type, processedData, colors) ?? <div>No data available</div>}
           </ResponsiveContainer>

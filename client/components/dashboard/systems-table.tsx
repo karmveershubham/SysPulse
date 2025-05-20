@@ -179,7 +179,7 @@ export function SystemsTable({ data, className }: SystemsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{formatDate(system.reported_at)}</span>
+                  {/* <span className="text-sm">{formatDate(system.reported_at)}</span> */}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
