@@ -13,6 +13,9 @@
        ⬇
  [Disk, OS, Antivirus Checks]
 ```
+Image
+
+![Dashboard ](dashboard.png)
 
 ---
 
